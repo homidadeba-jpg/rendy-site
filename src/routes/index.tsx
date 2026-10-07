@@ -18,6 +18,7 @@ import {
 import { LangProvider, useI18n } from "../i18n";
 import LangSwitcher from "../components/LangSwitcher";
 import BookingWidget from "../components/BookingWidget";
+import RoomCarousel from "../components/RoomCarousel";
 import Loading from "../components/Loading";
 
 export const Route = createFileRoute("/")({
@@ -27,13 +28,13 @@ export const Route = createFileRoute("/")({
 const WA = "https://wa.me/595991653249";
 const IG = "https://www.instagram.com/renty_encarnacion/";
 
-const ROOM_IMG = [
-  "quarto-individual",
-  "quarto-doble",
-  "quarto-doble-baho",
-  "quarto-triple",
-  "quarto-triple-confort",
-  "quarto-doble-grande",
+const ROOM_IMG: string[][] = [
+  ["quarto-individual", "corredor", "banho"],
+  ["quarto-doble", "quarto-doble-elegante", "banho2"],
+  ["quarto-doble-baho", "banho", "banho2"],
+  ["quarto-triple", "quarto-navy", "banho"],
+  ["quarto-triple-confort", "quarto-vista", "banho2"],
+  ["quarto-doble-grande", "quarto-familia", "quarto-vista"],
 ];
 const AMENITY_ICONS = [Coffee, Wifi, Car, Wine, Bike, Waves];
 
@@ -73,6 +74,9 @@ function Site() {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       if (cancelled) return;
       gsap.registerPlugin(ScrollTrigger);
+      // Ignore the mobile URL-bar show/hide resize so the parallax triggers
+      // don't recompute mid-scroll.
+      ScrollTrigger.config({ ignoreMobileResize: true });
 
       ctx = gsap.context(() => {
         // Hero entrance — the one authored moment.
@@ -85,29 +89,6 @@ function Site() {
           .from(".scroll-cue", { opacity: 0, duration: 0.8 }, 1.0)
           .from(".bw", { opacity: 0, y: 40, duration: 0.9 }, 0.95);
 
-        // Section reveals — subtle, consistent, from an already-visible default.
-        gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) => {
-          gsap.from(el, {
-            opacity: 0,
-            y: 34,
-            duration: 1,
-            ease: "expo.out",
-            scrollTrigger: { trigger: el, start: "top 90%", once: true },
-          });
-        });
-
-        // Staggered children.
-        gsap.utils.toArray<HTMLElement>("[data-reveal-group]").forEach((group) => {
-          gsap.from(group.children, {
-            opacity: 0,
-            y: 28,
-            duration: 0.9,
-            ease: "expo.out",
-            stagger: 0.08,
-            scrollTrigger: { trigger: group, start: "top 88%", once: true },
-          });
-        });
-
         // Gentle parallax on the large feature photos.
         gsap.utils.toArray<HTMLElement>("[data-parallax]").forEach((el) => {
           gsap.to(el, {
@@ -117,11 +98,8 @@ function Site() {
           });
         });
 
-        // Recalculate trigger positions once layout + images settle.
         requestAnimationFrame(() => ScrollTrigger.refresh());
         window.addEventListener("load", () => ScrollTrigger.refresh());
-        setTimeout(() => ScrollTrigger.refresh(), 600);
-        setTimeout(() => ScrollTrigger.refresh(), 1600);
       }, rootRef);
     })();
 
@@ -129,6 +107,63 @@ function Site() {
       cancelled = true;
       ctx?.revert();
     };
+  }, [loaded]);
+
+  // Scroll reveals — geometry-based. An element reveals once its top crosses
+  // 86% of the viewport height. getBoundingClientRect is always accurate (unlike
+  // GSAP ScrollTrigger / IntersectionObserver here, which mismeasured on mobile
+  // and froze reveals), and a safety timeout guarantees nothing stays hidden.
+  useEffect(() => {
+    if (!loaded) return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    const els = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-reveal], [data-reveal-group] > *")
+    );
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return; // CSS leaves them visible
+
+    els.forEach((el) => el.classList.add("rv"));
+    let pending = els;
+
+    const reveal = () => {
+      const line = window.innerHeight * 0.86;
+      pending = pending.filter((el) => {
+        if (el.getBoundingClientRect().top < line) {
+          el.classList.add("rv-in");
+          return false;
+        }
+        return true;
+      });
+      if (pending.length === 0) stop();
+    };
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        reveal();
+      });
+    };
+    const stop = () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      clearTimeout(safety);
+    };
+    // Absolute safety net: reveal anything still hidden, so a reveal can never
+    // leave content permanently invisible.
+    const safety = window.setTimeout(() => {
+      pending.forEach((el) => el.classList.add("rv-in"));
+      pending = [];
+      stop();
+    }, 4000);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    reveal(); // reveal what's already on screen
+    return stop;
   }, [loaded]);
 
   const go = (id: string) => {
@@ -240,12 +275,7 @@ function Site() {
           <div className="room-grid" data-reveal-group>
             {t.rooms.list.map((room, i) => (
               <article className="room-card" key={room.name}>
-                <div
-                  className="room-photo"
-                  style={{ backgroundImage: `url(/fotos/${ROOM_IMG[i]}-720.webp)` }}
-                  role="img"
-                  aria-label={room.name}
-                />
+                <RoomCarousel images={ROOM_IMG[i]} alt={room.name} />
                 <div className="room-body">
                   <h3 className="room-name">{room.name}</h3>
                   <p className="room-beds">{room.beds}</p>

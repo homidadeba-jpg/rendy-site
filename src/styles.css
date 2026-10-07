@@ -298,8 +298,39 @@ section[id] { scroll-margin-top: 88px; }
 .rooms-intro { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(28px, 6vw, 90px); max-width: 1180px; margin: 0 auto; align-items: end; }
 .room-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 2.4vw, 32px); max-width: 1180px; margin: clamp(48px, 6vw, 80px) auto 0; }
 .room-card { display: flex; flex-direction: column; background: var(--cream); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-card); }
-.room-photo { aspect-ratio: 4 / 3; background-size: cover; background-position: center; transition: transform 0.9s ease; }
-.room-card:hover .room-photo { transform: scale(1.05); }
+
+/* Room photo carousel — scroll-snap, swipeable on touch, arrows on hover */
+.rc { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--sand); }
+.rc-track {
+  display: flex; height: 100%; width: 100%;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.rc-track::-webkit-scrollbar { display: none; }
+.rc-slide { flex: 0 0 100%; scroll-snap-align: center; background-size: cover; background-position: center; }
+.rc-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  display: grid; place-items: center; width: 36px; height: 36px;
+  border: 0; border-radius: 999px;
+  background: rgba(251, 248, 242, 0.9); color: var(--navy);
+  box-shadow: 0 6px 18px -8px rgba(8, 29, 48, 0.5);
+  opacity: 0; transition: opacity 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+.rc-prev { left: 12px; } .rc-next { right: 12px; }
+.room-card:hover .rc-arrow { opacity: 1; }
+.rc-arrow:hover { background: var(--gold); color: var(--navy-deep); }
+.rc-dots { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 3; display: flex; justify-content: center; gap: 7px; }
+.rc-dot { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 999px; background: rgba(251, 248, 242, 0.55); transition: background 0.25s ease, width 0.25s ease; }
+.rc-dot.is-active { width: 20px; background: var(--paper); }
+.rc-count {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(8, 29, 48, 0.55); backdrop-filter: blur(4px);
+  color: var(--cream); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+}
+@media (hover: none) { .rc-arrow { display: none; } }
 .room-body { display: flex; flex-direction: column; flex: 1; padding: 26px 24px 28px; }
 .room-name { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.65rem; letter-spacing: -0.02em; color: var(--navy); }
 .room-beds { margin: 6px 0 0; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
@@ -465,21 +496,39 @@ section[id] { scroll-margin-top: 88px; }
   .brand-name { font-size: 1.6rem; }
   .hero { padding: 120px 20px 110px; min-height: 90svh; }
   .bw-wrap { margin-top: -48px; }
-  .bw-row { flex-direction: column; align-items: stretch; gap: 16px; }
+  .bw-row { flex-direction: column; align-items: stretch; gap: 18px; }
   .bw-sep { display: none; }
-  .bw-field { min-width: 0; }
+  /* flex-basis 150px was a width in the row layout; in a column it becomes a
+     min-height and blows the fields up. Reset to natural height. */
+  .bw-field { flex: 0 0 auto; min-width: 0; }
   .bw-submit { justify-content: center; width: 100%; }
   .room-grid { grid-template-columns: 1fr; }
   .amenities { grid-template-columns: 1fr; }
-  .experience-photos { grid-template-columns: 1fr; grid-template-rows: repeat(3, 190px); }
-  .xp-photo-main { grid-column: 1; grid-row: 1; }
-  .gallery-grid { grid-template-columns: 1fr; grid-template-rows: repeat(5, 210px); }
-  .g-1, .g-2, .g-3, .g-4, .g-5 { grid-column: 1; }
-  .g-1 { grid-row: 1; } .g-2 { grid-row: 2; } .g-3 { grid-row: 3; } .g-4 { grid-row: 4; } .g-5 { grid-row: 5; }
+  /* Keep an editorial 2-col mosaic on phones instead of a plain stack */
+  .experience-photos { grid-template-columns: 1fr 1fr; grid-template-rows: 190px 140px; gap: 10px; }
+  .xp-photo-main { grid-column: 1 / 3; grid-row: 1; }
+  .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 200px 130px 160px; gap: 10px; }
+  .g-1 { grid-column: 1 / 2; grid-row: 1 / 3; }
+  .g-2 { grid-column: 2 / 3; grid-row: 1 / 2; }
+  .g-3 { grid-column: 2 / 3; grid-row: 2 / 3; }
+  .g-4 { grid-column: 1 / 2; grid-row: 3 / 4; }
+  .g-5 { grid-column: 2 / 3; grid-row: 3 / 4; }
+  .g-6 { display: block; grid-column: 1 / 3; grid-row: 4 / 5; height: 180px; }
   .scroll-cue { display: none; }
   .footer { grid-template-columns: 1fr; }
   .footer-contact { align-items: flex-start; }
   .footer-bottom { flex-direction: column; gap: 8px; }
+}
+
+/* ============ SCROLL REVEALS ============ */
+/* JS adds .rv (hidden) then .rv-in (visible) as each element scrolls in. The
+   transition lives on .rv-in so adding .rv to an off-screen element hides it
+   instantly (no stalled 1→0 transition); only the 0→1 reveal animates. */
+.rv { opacity: 0; transform: translateY(30px); }
+.rv.rv-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
