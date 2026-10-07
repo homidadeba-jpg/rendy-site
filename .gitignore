@@ -33,3 +33,6 @@ dist-ssr
 
 # Netlify
 .netlify
+
+# usar bun, nao npm lockfile
+package-lock.json

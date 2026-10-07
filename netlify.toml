@@ -1,8 +1,8 @@
-# Renty Beach — Netlify deploy (TanStack Start + Nitro)
+# Renty Beach — Netlify deploy (TanStack Start + Nitro, gerenciado com Bun)
 [build]
-  command = "npm run build"
+  command = "bun install --frozen-lockfile && bun run build"
   publish = "dist"
 
 [build.environment]
   SERVER_PRESET = "netlify"
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
