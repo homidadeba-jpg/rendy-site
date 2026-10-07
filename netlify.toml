@@ -1,0 +1,8 @@
+# Renty Beach — Netlify deploy (TanStack Start + Nitro)
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  SERVER_PRESET = "netlify"
+  NODE_VERSION = "20"
